@@ -137,9 +137,10 @@ class Linky
      */
     public function getHourlyData(\DateTime $date)
     {
-        // From date - 2 days to date + 1 day...
+        // Requesting data from date - 1 day because data includes values from date 00:30 to date+1 00:00
         $startDate = clone $date;
-        $startDate->sub(new \DateInterval('P2D'));
+        $startDate->sub(new \DateInterval('P1D'));
+        // Requesting data to date +1 to include the date itself
         $endDate = clone $date;
         $endDate->add(new \DateInterval('P1D'));
 
@@ -150,19 +151,22 @@ class Linky
         }
 
         $output = array();
-        $currentTime = new \DateTime('23:30');
+        $currentTime = new \DateTime($startDate->format('Y-m-d').' '.'00:30:00', new \DateTimeZone(Linky::TIMEZONE));
+        $timeStart = new \DateTime($date->format('Y-m-d').' '.'00:00:00', new \DateTimeZone(Linky::TIMEZONE));
+        $timeEnd = new \DateTime($date->format('Y-m-d').' '.'23:30:00', new \DateTimeZone(Linky::TIMEZONE));
 
         $data = $result['graphe']['data'];
-        $end = count($data);
-        for ($i = $end - 1; $i >= $end - (2*24); $i--) {
+        $count = count($data);
+
+        for ($i = 0; $i < $count; $i++) {
             $value = $data[$i]['valeur'];
 
-            $output[$date->format('Y-m-d').' '.$currentTime->format('H:i')] = $this->formatValue($value);
+            if ($currentTime >= $timeStart && $currentTime <= $timeEnd) {
+                $output[$currentTime->format('Y-m-d').' '.$currentTime->format('H:i')] = $this->formatValue($value);
+            }
 
-            $currentTime->modify('-30 min');
+            $currentTime->add(new \DateInterval('PT30M'));
         }
-
-        $output = array_reverse($output);
 
         return $output;
     }
